@@ -1,13 +1,33 @@
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/ThemeToggle"
+import { NavLink, Outlet } from 'react-router-dom'
+
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 function App() {
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center">
-      <div className="absolute top-4 right-4">
+    <div className="flex min-h-svh flex-col">
+      <header className="flex items-center justify-between border-b px-6 py-3">
+        <nav className="flex gap-4">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              isActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:text-foreground'
+            }
+          >
+            Home
+          </NavLink>
+          <NavLink
+            to="/about"
+            className={({ isActive }) =>
+              isActive ? 'font-semibold text-primary' : 'text-muted-foreground hover:text-foreground'
+            }
+          >
+            About
+          </NavLink>
+        </nav>
         <ThemeToggle />
-      </div>
-      <Button onClick={() => alert('hello world')}>Click me</Button>
+      </header>
+      <Outlet />
     </div>
   )
 }

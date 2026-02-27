@@ -43,11 +43,13 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+    --color-chrome: var(--chrome);
 }
 
 :root {
     --radius: 0.625rem;
-    --background: oklch(0.975 0.008 80);
+    --background: oklch(0.97 0 0);
+    --chrome: oklch(0.92 0 0);
     --foreground: oklch(0.13 0.028 261.692);
     --card: oklch(0.985 0.005 80);
     --card-foreground: oklch(0.13 0.028 261.692);
@@ -81,7 +83,8 @@
 }
 
 .dark {
-    --background: oklch(0.18 0 0);
+    --background: oklch(0.22 0 0);
+    --chrome: oklch(0.17 0 0);
     --foreground: oklch(0.985 0.002 247.839);
     --card: oklch(0.22 0 0);
     --card-foreground: oklch(0.985 0.002 247.839);
@@ -124,4 +127,13 @@
   button {
     cursor: pointer;
     }
+}
+
+@layer utilities {
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }

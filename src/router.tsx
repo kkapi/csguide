@@ -4,6 +4,7 @@ import App from '@/App'
 import { About } from '@/pages/About'
 import { Home } from '@/pages/Home'
 import { Placeholder } from '@/pages/Placeholder'
+import { TrainingConfigs } from "@/pages/TrainingConfig"
 
 export const router = createHashRouter([
   {
@@ -48,7 +49,7 @@ export const router = createHashRouter([
       { path: 'maps/nuke/tips', element: <Placeholder /> },
 
       // Тренировка
-      { path: 'training/setup', element: <Placeholder /> },
+      { path: 'training/setup', element: <TrainingConfigs /> },
       { path: 'training/aim', element: <Placeholder /> },
       { path: 'training/workshop', element: <Placeholder /> },
     ],

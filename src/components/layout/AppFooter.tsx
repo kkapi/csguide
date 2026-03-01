@@ -1,27 +1,10 @@
-import { Github, Send } from 'lucide-react'
-
-const base = import.meta.env.BASE_URL
+import { CodeXml } from 'lucide-react'
 
 const contacts = [
   {
-    name: 'Telegram',
-    href: '#',
-    icon: <Send className="size-4" />,
-  },
-  {
-    name: '',
-    href: '#',
-    icon: <img src={`${base}icons/faceit.svg`} alt="FACEIT" width={80} />,
-  },
-  {
-    name: '',
-    href: '#',
-    icon: <img src={`${base}icons/steam.png`} alt="Steam" width={60} />,
-  },
-  {
     name: 'GitHub',
-    href: '#',
-    icon: <Github className="size-4" />,
+    href: 'https://github.com/kkapi/csguide',
+    icon: <CodeXml className="size-4" />,
   },
 ]
 

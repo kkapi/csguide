@@ -3,8 +3,10 @@ import { createHashRouter } from 'react-router-dom'
 import App from '@/App'
 import { About } from '@/pages/About'
 import { Home } from '@/pages/Home'
+import {  MirageNades } from "@/pages/MirageNades"
 import { Placeholder } from '@/pages/Placeholder'
 import { TrainingConfigs } from "@/pages/TrainingConfig"
+
 
 export const router = createHashRouter([
   {
@@ -29,7 +31,7 @@ export const router = createHashRouter([
 
       // Карты — Mirage
       { path: 'maps/mirage/default', element: <Placeholder /> },
-      { path: 'maps/mirage/smokes', element: <Placeholder /> },
+      { path: 'maps/mirage/smokes', element: <MirageNades /> },
       { path: 'maps/mirage/rounds', element: <Placeholder /> },
       { path: 'maps/mirage/positions', element: <Placeholder /> },
       { path: 'maps/mirage/tips', element: <Placeholder /> },

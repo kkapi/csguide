@@ -52,7 +52,7 @@ export function ConsoleCommand({
         </div>
       )}
 
-      <pre className="whitespace-pre-wrap break-words leading-relaxed text-emerald-300">
+      <pre className="whitespace-pre-wrap break-words leading-relaxed text-yellow-300/65">
         {displayText}
       </pre>
 

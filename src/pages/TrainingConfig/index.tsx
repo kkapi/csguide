@@ -75,18 +75,50 @@ export function TrainingConfigs() {
   const [selectedKnifeId, setSelectedKnifeId] = useState(500);
 
   const buildMainCommand = (): string => {
-    let cmd =
-      "sv_cheats 1; bot_kick; mp_freezetime 0; mp_buy_anywhere 1; mp_maxmoney 999999; mp_warmup_pausetimer 1; mp_autoteambalance 0; mp_limitteams 0; ammo_grenade_limit_total 6; mp_restartgame 1;";
+    const parts: string[] = [];
 
-    if (config.infiniteAmmo) cmd += " sv_infinite_ammo 1;";
+    // Базовые настройки (всегда)
+    parts.push(
+      "sv_cheats 1;",
+      "bot_kick;",
+      "mp_freezetime 0;",
+      "mp_buy_anywhere 1;",
+      "mp_maxmoney 999999;",
+      "mp_warmup_pausetimer 1;",
+      "mp_autoteambalance 0;",
+      "mp_limitteams 0;",
+      "ammo_grenade_limit_total 6;",
+    );
+
+    // Отступ перед изменяемыми настройками
+    parts.push("\n");
+
+    // Всегда присутствующие команды с переключением 0/1
+    parts.push(`sv_infinite_ammo ${config.infiniteAmmo ? "1" : "0"};`);
+    parts.push(`sv_showimpacts ${config.showImpacts ? "1" : "0"};`);
+    parts.push(`sv_grenade_trajectory_prac_pipreview ${config.pipeReview ? "1" : "0"};`);
+
+    // Траектория (всегда)
+    parts.push(`sv_grenade_trajectory_prac_trailtime ${config.trailTime};`);
+
+
+    // Неуязвимость — отдельно (только если включено)
     if (config.godMode) {
-      cmd += " buddha 1; buddha_ignore_bots 1; sv_regeneration_force_on 1;";
+      parts.push(
+        "buddha 1;",
+        "buddha_ignore_bots 1;",
+        "sv_regeneration_force_on 1;",
+      );
     }
-    cmd += ` sv_grenade_trajectory_prac_trailtime ${config.trailTime};`;
-    if (config.showImpacts) cmd += " sv_showimpacts 1;";
-    if (config.pipeReview) cmd += " sv_grenade_trajectory_prac_pipreview 1;";
 
-    return cmd.trim();
+    // Отступ перед рестартом
+    parts.push("\n");
+
+    // Всегда в самом конце
+    parts.push("mp_restartgame 1");
+
+    // Собираем в одну строку
+    return parts.join("");
   };
 
   const mainCommand = buildMainCommand();
@@ -135,13 +167,14 @@ export function TrainingConfigs() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <Label>Время траектории гранат</Label>
+              <div className="flex justify-between text-base">
+                <Label htmlFor="slider">Время траектории гранат</Label>
                 <span className="font-mono text-emerald-400">
                   {config.trailTime}
                 </span>
               </div>
               <Slider
+                id="slider"
                 value={[config.trailTime]}
                 onValueChange={([val]) =>
                   setConfig((prev) => ({ ...prev, trailTime: val }))
@@ -152,15 +185,15 @@ export function TrainingConfigs() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="godMode" className="text-base">
-                Неуязвимость
+              <div className="flex items-center justify-between">
+              <Label htmlFor="pipeReview" className="text-base">
+                Предпросмотр траектории гранат
               </Label>
               <Switch
-                id="godMode"
-                checked={config.godMode}
+                id="pipeReview"
+                checked={config.pipeReview}
                 onCheckedChange={(v) =>
-                  setConfig((prev) => ({ ...prev, godMode: v }))
+                  setConfig((prev) => ({ ...prev, pipeReview: v }))
                 }
               />
             </div>
@@ -178,24 +211,32 @@ export function TrainingConfigs() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="pipeReview" className="text-base">
-                Предпросмотр траектории гранат
-              </Label>
-              <Switch
-                id="pipeReview"
-                checked={config.pipeReview}
-                onCheckedChange={(v) =>
-                  setConfig((prev) => ({ ...prev, pipeReview: v }))
-                }
-              />
+          
+
+            {/* Отдельный блок для неуязвимости */}
+            <div className="pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="godMode" className="text-base font-semibold">
+                  Неуязвимость (buddha + регенерация)
+                </Label>
+                <Switch
+                  id="godMode"
+                  checked={config.godMode}
+                  onCheckedChange={(v) =>
+                    setConfig((prev) => ({ ...prev, godMode: v }))
+                  }
+                />
+              </div>
+              <p className="text-xs text-zinc-500 mt-1">
+                Отдельная группа команд — не мешается с остальными настройками
+              </p>
             </div>
           </div>
 
           {/* Сгенерированная команда */}
           <ConsoleCommand
             text={mainCommand}
-            label="Скопируйте и вставьте в консоль"
+            splitOnSemicolon={true}
           />
         </CardContent>
       </Card>
@@ -208,19 +249,22 @@ export function TrainingConfigs() {
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {/* Очистка гранат */}
             <div className="space-y-3">
               <Label>Клавиша очистки гранат</Label>
               <Input
-                // value={config.clearGrenadesKey}
-                onChange={(e) => console.log(e.target.value)}
+                value={config.clearGrenadesKey}
+                onChange={(e) =>
+                  setConfig((prev) => ({
+                    ...prev,
+                    clearGrenadesKey: e.target.value.toLowerCase().slice(0, 1) || "k",
+                  }))
+                }
                 maxLength={1}
                 className="font-mono uppercase"
               />
               <ConsoleCommand text={clearGrenadesCommand} />
             </div>
 
-            {/* Бот + place */}
             <div className="space-y-3">
               <Label>Клавиша добавления/размещения бота</Label>
               <Input
@@ -228,8 +272,7 @@ export function TrainingConfigs() {
                 onChange={(e) =>
                   setConfig((prev) => ({
                     ...prev,
-                    botPlaceKey:
-                      e.target.value.toLowerCase().slice(0, 1) || "j",
+                    botPlaceKey: e.target.value.toLowerCase().slice(0, 1) || "j",
                   }))
                 }
                 maxLength={1}
@@ -238,7 +281,6 @@ export function TrainingConfigs() {
               <ConsoleCommand text={botPlaceCommand} />
             </div>
 
-            {/* Rethrow */}
             <div className="space-y-3">
               <Label>Клавиша перебрасывания гранаты</Label>
               <Input
@@ -267,13 +309,11 @@ export function TrainingConfigs() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Дроп ножей */}
           <ConsoleCommand
             text="mp_drop_knife_enable 1"
             label="Включение дропа ножей"
           />
 
-          {/* Выбор ножа */}
           <div className="space-y-3">
             <Label>Создать нож</Label>
             <Select

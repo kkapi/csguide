@@ -1,5 +1,5 @@
 import { useMediaQuery } from "@uidotdev/usehooks";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ConsoleCommand } from "@/components/ConsoleCommand";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useLocalStorage } from "@/utils/useLocalStorage";
 
 interface TrainingConfig {
@@ -61,6 +62,9 @@ export function TrainingConfigs() {
   );
 
   const [selectedKnifeId, setSelectedKnifeId] = useState(507);
+  // Автокопирование могло не пройти — тогда подсвечиваем кнопку копирования.
+  const [needsManualCopy, setNeedsManualCopy] = useState(false);
+  const autoCopied = useRef(false);
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -102,6 +106,21 @@ export function TrainingConfigs() {
     knifeCommand,
   ].join("; ");
 
+  // Базовый блок сразу в буфере при открытии страницы: чаще всего за ним сюда
+  // и заходят. Chrome и Edge это разрешают, Firefox и Safari требуют клика —
+  // там просто подсветим кнопку.
+  useEffect(() => {
+    if (autoCopied.current) return;
+    autoCopied.current = true;
+    void copyToClipboard(
+      buildMainCommand(),
+      "Базовые настройки скопированы",
+    ).then((ok: boolean) => setNeedsManualCopy(!ok));
+    // Намеренно один раз при монтировании: перекопировать на каждое движение
+    // ползунка значило бы затирать буфер, пока человек ещё настраивает.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="flex flex-col gap-5 mx-2 md:mx-4">
       <h1 className="text-3xl font-bold tracking-tight">
@@ -126,8 +145,8 @@ export function TrainingConfigs() {
         </div>
 
         <p className="text-sm text-zinc-500">
-          Все настройки ниже сохраняются автоматически. Копируйте команды в
-          консоль.
+          Все настройки ниже сохраняются автоматически. Базовый блок уже
+          скопирован в буфер — просто вставьте его в консоль.
         </p>
       </div>
 
@@ -217,6 +236,7 @@ export function TrainingConfigs() {
           text={buildMainCommand()}
           splitOnSemicolon
           label="Настройки сервера для тренировок"
+          attention={needsManualCopy}
         />
       </section>
 

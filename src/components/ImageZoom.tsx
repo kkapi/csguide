@@ -1,10 +1,16 @@
 import { X, ZoomIn } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 const MIN_SCALE = 1
 const MAX_SCALE = 6
 const DOUBLE_TAP_SCALE = 2.5
+/** Насколько палец может сместиться, чтобы касание всё ещё считалось тапом. */
+const TAP_SLOP = 10
+/** Максимальный интервал между тапами, мс. */
+const DOUBLE_TAP_MS = 300
 
 interface Transform {
   scale: number
@@ -23,17 +29,19 @@ interface ImageZoomProps {
 
 /**
  * Полноэкранный просмотр с зумом: колесо и двойной клик на десктопе, пинч и
- * двойной тап на телефоне. Без внешних зависимостей — тут нужен ровно pan/zoom,
- * а не вся библиотека жестов.
+ * двойной тап на телефоне. Жесты свои — тут нужен ровно pan/zoom, а не целая
+ * библиотека.
  *
- * Это не Radix Dialog: зум открывается изнутри модалки гранаты, а вложенные
- * диалоги дерутся за фокус и за блокировку скролла.
+ * Обязательно диалог Radix, а не портал в body: пока открыта модалка гранаты,
+ * Radix держит на body `pointer-events: none` и возвращает `auto` только
+ * своему верхнему слою. Портал-сосед просто не получал бы событий.
  */
 export function ImageZoom({ src, alt, open, onClose }: ImageZoomProps) {
   const [t, setT] = useState<Transform>(IDENTITY)
   const imgRef = useRef<HTMLImageElement>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const pinchStart = useRef<{ dist: number; scale: number } | null>(null)
+  const tapStart = useRef<{ x: number; y: number } | null>(null)
   const lastTap = useRef(0)
 
   // Сброс при открытии и при смене картинки — иначе следующая откроется
@@ -46,27 +54,16 @@ export function ImageZoom({ src, alt, open, onClose }: ImageZoomProps) {
     setT(IDENTITY)
   }
 
+  // Esc и блокировку прокрутки берёт на себя Radix. Остаются стрелки: пока
+  // разглядываешь пиксель, они не должны листать гранаты под зумом.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        onClose()
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        // Пока разглядываешь пиксель, стрелки не должны листать гранаты под зумом.
-        e.stopPropagation()
-      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.stopPropagation()
     }
-    // capture на window: срабатывает раньше всех — и Esc закрывает зум,
-    // а не модалку гранаты под ним.
     window.addEventListener('keydown', onKey, true)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey, true)
-      document.body.style.overflow = prev
-    }
-  }, [open, onClose])
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [open])
 
   /** Держит картинку в пределах экрана: за край видно не больше половины. */
   const clamp = useCallback((next: Transform): Transform => {
@@ -108,9 +105,13 @@ export function ImageZoom({ src, alt, open, onClose }: ImageZoomProps) {
   const onPointerDown = (e: React.PointerEvent) => {
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-    if (pointers.current.size === 2) {
+    if (pointers.current.size === 1) {
+      tapStart.current = { x: e.clientX, y: e.clientY }
+    } else if (pointers.current.size === 2) {
       const [a, b] = [...pointers.current.values()]
       pinchStart.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale: t.scale }
+      // Начался пинч — одиночным касанием это уже не будет.
+      tapStart.current = null
     }
   }
 
@@ -137,6 +138,24 @@ export function ImageZoom({ src, alt, open, onClose }: ImageZoomProps) {
   const onPointerUp = (e: React.PointerEvent) => {
     pointers.current.delete(e.pointerId)
     if (pointers.current.size < 2) pinchStart.current = null
+
+    // Двойной тап: у touch нет dblclick, интервал считаем сами. Проверка живёт
+    // во всплытии, а не в capture: в capture указатель ещё в карте, и условие
+    // «все пальцы подняты» никогда не выполнялось бы.
+    const start = tapStart.current
+    tapStart.current = null
+    if (e.pointerType === 'mouse' || pointers.current.size > 0 || !start) return
+    // Смазанное касание — это был жест панорамы, а не тап.
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_SLOP) return
+
+    // Берём время из самого события, а не Date.now(): оно точнее для жестов
+    // и не тянет за собой нечистый вызов в теле компонента.
+    if (e.timeStamp - lastTap.current < DOUBLE_TAP_MS) {
+      toggleZoom(e)
+      lastTap.current = 0
+    } else {
+      lastTap.current = e.timeStamp
+    }
   }
 
   const onWheel = (e: React.WheelEvent) => {
@@ -149,63 +168,59 @@ export function ImageZoom({ src, alt, open, onClose }: ImageZoomProps) {
     zoomAt(t.scale > MIN_SCALE ? MIN_SCALE : DOUBLE_TAP_SCALE, p.x, p.y)
   }
 
-  /** Двойной тап: у touch нет dblclick, приходится считать интервал руками. */
-  const onPointerUpCapture = (e: React.PointerEvent) => {
-    if (e.pointerType === 'mouse' || pointers.current.size > 0) return
-    const now = Date.now()
-    if (now - lastTap.current < 300) {
-      toggleZoom(e)
-      lastTap.current = 0
-    } else {
-      lastTap.current = now
-    }
-  }
-
-  if (!open) return null
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 select-none"
-      onPointerDown={(e) => {
-        // Клик мимо картинки закрывает просмотр.
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <button
-        onClick={onClose}
-        aria-label="Закрыть"
-        className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white/80 hover:bg-black/80 hover:text-white"
-      >
-        <X className="size-5" />
-      </button>
-
-      {t.scale === MIN_SCALE && (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white/70">
-          <ZoomIn className="size-3.5" />
-          Двойной тап или колесо — приблизить
-        </div>
-      )}
-
-      <img
-        ref={imgRef}
-        src={src}
-        alt={alt}
-        draggable={false}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerUpCapture={onPointerUpCapture}
-        onPointerCancel={onPointerUp}
-        onWheel={onWheel}
-        onDoubleClick={toggleZoom}
-        style={{
-          transform: `translate3d(${t.x}px, ${t.y}px, 0) scale(${t.scale})`,
-          touchAction: 'none',
-          cursor: t.scale > MIN_SCALE ? 'grab' : 'zoom-in',
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        // Клик мимо картинки закрывает просмотр. Сам DialogContent занимает весь
+        // экран, поэтому «снаружи» для Radix тут нет — проверяем цель сами.
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) onClose()
         }}
-        className="max-h-full max-w-full object-contain"
-      />
-    </div>,
-    document.body,
+        className={cn(
+          // Растягиваем на весь экран: у DialogContent по умолчанию центрирование
+          // трансформом, ограничение ширины, скругление и отступы — всё лишнее.
+          'inset-0 top-0 left-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0',
+          'items-center justify-center gap-0 rounded-none border-0 bg-black/95 p-0',
+          'select-none sm:max-w-none',
+        )}
+      >
+        <DialogTitle className="sr-only">{alt}</DialogTitle>
+
+        <button
+          onClick={onClose}
+          aria-label="Закрыть"
+          className="absolute top-3 right-3 z-10 rounded-full bg-black/60 p-2 text-white/80 hover:bg-black/80 hover:text-white"
+        >
+          <X className="size-5" />
+        </button>
+
+        {t.scale === MIN_SCALE && (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white/70">
+            <ZoomIn className="size-3.5" />
+            Двойной тап или колесо — приблизить
+          </div>
+        )}
+
+        <img
+          ref={imgRef}
+          src={src}
+          alt={alt}
+          draggable={false}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onWheel={onWheel}
+          onDoubleClick={toggleZoom}
+          style={{
+            transform: `translate3d(${t.x}px, ${t.y}px, 0) scale(${t.scale})`,
+            touchAction: 'none',
+            cursor: t.scale > MIN_SCALE ? 'grab' : 'zoom-in',
+          }}
+          className="max-h-full max-w-full object-contain"
+        />
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { ConsoleCommand } from '@/components/ConsoleCommand'
@@ -115,6 +115,7 @@ export function NadeModal({
           <>
             <NadeGallery
               nade={nade}
+              preload
               className="aspect-video w-full shrink-0 max-sm:aspect-auto max-sm:min-h-0 max-sm:flex-1"
             />
 
@@ -159,32 +160,38 @@ export function NadeModal({
                 </p>
               )}
 
-              <div className="flex items-stretch gap-2">
+              {/* На узком экране контролы уходят под команду отдельной строкой:
+                  втроём в ряд они не помещаются. На широком `sm:contents`
+                  растворяет обёртку, и кнопки встают в один рост с командой. */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <ConsoleCommand
                   text={command}
                   copied={copied}
                   className="min-w-0 flex-1 p-3 pr-14 text-xs sm:text-sm"
                 />
-                <button
-                  type="button"
-                  onClick={onToggleSetang}
-                  aria-pressed={withSetang}
-                  title="Добавлять ли setang — команду, которая выставляет прицел"
-                  className={cn(
-                    'inline-flex shrink-0 items-center justify-center rounded-md border px-2.5',
-                    'font-mono text-xs transition-colors',
-                    withSetang
-                      ? 'border-primary bg-primary/15 text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  setang {withSetang ? 'вкл' : 'выкл'}
-                </button>
-                <LearnedToggle
-                  learned={learned}
-                  onToggle={onToggleLearned}
-                  className="shrink-0 py-0"
-                />
+                <div className="flex items-center gap-2 sm:contents">
+                  <button
+                    type="button"
+                    onClick={onToggleSetang}
+                    aria-pressed={withSetang}
+                    title="Добавлять ли в команду setang, который выставляет прицел"
+                    className={cn(
+                      'inline-flex shrink-0 items-center justify-center rounded-md border px-2.5',
+                      'gap-1.5 py-2 text-xs transition-colors sm:py-0',
+                      withSetang
+                        ? 'border-primary bg-primary/15 text-primary'
+                        : 'border-border text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {withSetang && <Check className="size-3.5" />}
+                    Установить прицел
+                  </button>
+                  <LearnedToggle
+                    learned={learned}
+                    onToggle={onToggleLearned}
+                    className="shrink-0 py-1.5 sm:py-0"
+                  />
+                </div>
               </div>
             </div>
           </>

@@ -306,13 +306,11 @@ export function TrainingNades() {
       </div>
 
       {current && (
-        <>
-          {/* Ширина от высоты экрана: картинка остаётся 16:9, а кнопки
-              и комментарий помещаются без прокрутки. */}
-          <NadeGallery
-            nade={current}
-            className="aspect-video w-full max-w-[calc(52dvh*16/9)] rounded-xl"
-          />
+        // Картинка и контролы — общая колонка по центру страницы, шириной с
+        // саму картинку. Ширина считается от высоты экрана, чтобы кадр остался
+        // 16:9 и всё поместилось без прокрутки. Внутри — по левому краю.
+        <div className="mx-auto flex w-full max-w-[calc(52dvh*16/9)] flex-col gap-3">
+          <NadeGallery nade={current} className="aspect-video w-full rounded-xl" />
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <NadeTypeBadge type={current.type} />
@@ -331,12 +329,10 @@ export function TrainingNades() {
           </div>
 
           {current.note && (
-            <p className="max-w-3xl text-base leading-relaxed text-foreground/85">
-              {current.note}
-            </p>
+            <p className="text-base leading-relaxed text-foreground/85">{current.note}</p>
           )}
 
-          <div className="flex max-w-3xl items-stretch gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
             <ConsoleCommand
               text={command}
               copied={copied}
@@ -346,16 +342,17 @@ export function TrainingNades() {
               type="button"
               onClick={() => setWithSetang((v) => !v)}
               aria-pressed={withSetang}
-              title="Добавлять ли setang — команду, которая выставляет прицел"
+              title="Добавлять ли в команду setang, который выставляет прицел"
               className={cn(
-                'inline-flex shrink-0 items-center justify-center rounded-md border px-2.5',
-                'font-mono text-xs transition-colors',
+                'inline-flex shrink-0 items-center justify-center self-start rounded-md border px-2.5',
+                'gap-1.5 py-2 text-xs transition-colors sm:self-auto sm:py-0',
                 withSetang
                   ? 'border-primary bg-primary/15 text-primary'
                   : 'border-border text-muted-foreground hover:text-foreground',
               )}
             >
-              setang {withSetang ? 'вкл' : 'выкл'}
+              {withSetang && <Check className="size-3.5" />}
+              Установить прицел
             </button>
           </div>
 
@@ -387,7 +384,7 @@ export function TrainingNades() {
             «Повторить позже» вернёт гранату в конец очереди — счётчик не сдвинется.
             «Выучил» и «Убрать» закрывают её и двигают прогресс.
           </p>
-        </>
+        </div>
       )}
     </div>
   )

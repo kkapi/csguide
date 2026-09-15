@@ -10,7 +10,7 @@ const TYPE_LABELS: Record<NadeType, string> = {
 }
 
 const TYPE_COLORS: Record<NadeType, string> = {
-  smoke:   'bg-zinc-700 text-zinc-200 border-zinc-600',
+  smoke:   'bg-muted text-foreground border-border',
   flash:   'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
   molotov: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
   he:      'bg-red-500/20 text-red-300 border-red-500/30',

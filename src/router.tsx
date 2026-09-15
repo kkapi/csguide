@@ -3,10 +3,12 @@ import { createHashRouter } from 'react-router-dom'
 import App from '@/App'
 import { About } from '@/pages/About'
 import { Home } from '@/pages/Home'
-import {  MirageNades } from "@/pages/MirageNades"
+import { LegacyNadesRedirect } from '@/pages/LegacyNadesRedirect'
+import { MapNades } from '@/pages/MapNades'
+import { MapSpawns } from '@/pages/MapSpawns'
 import { Placeholder } from '@/pages/Placeholder'
-import { TrainingConfigs } from "@/pages/TrainingConfig"
-
+import { TrainingConfigs } from '@/pages/TrainingConfig'
+import { TrainingNades } from '@/pages/TrainingNades'
 
 export const router = createHashRouter([
   {
@@ -22,35 +24,17 @@ export const router = createHashRouter([
       { path: 'mechanics/weapons', element: <Placeholder /> },
       { path: 'mechanics/economy', element: <Placeholder /> },
 
-      // Карты — Dust2
-      { path: 'maps/dust2/default', element: <Placeholder /> },
-      { path: 'maps/dust2/smokes', element: <Placeholder /> },
-      { path: 'maps/dust2/rounds', element: <Placeholder /> },
-      { path: 'maps/dust2/positions', element: <Placeholder /> },
-      { path: 'maps/dust2/tips', element: <Placeholder /> },
-
-      // Карты — Mirage
-      { path: 'maps/mirage/default', element: <Placeholder /> },
-      { path: 'maps/mirage/smokes', element: <MirageNades /> },
-      { path: 'maps/mirage/rounds', element: <Placeholder /> },
-      { path: 'maps/mirage/positions', element: <Placeholder /> },
-      { path: 'maps/mirage/tips', element: <Placeholder /> },
-
-      // Карты — Inferno
-      { path: 'maps/inferno/default', element: <Placeholder /> },
-      { path: 'maps/inferno/smokes', element: <Placeholder /> },
-      { path: 'maps/inferno/rounds', element: <Placeholder /> },
-      { path: 'maps/inferno/positions', element: <Placeholder /> },
-      { path: 'maps/inferno/tips', element: <Placeholder /> },
-
-      // Карты — Nuke
-      { path: 'maps/nuke/default', element: <Placeholder /> },
-      { path: 'maps/nuke/smokes', element: <Placeholder /> },
-      { path: 'maps/nuke/rounds', element: <Placeholder /> },
-      { path: 'maps/nuke/positions', element: <Placeholder /> },
-      { path: 'maps/nuke/tips', element: <Placeholder /> },
+      // Карты — одна страница на все, конкретная берётся из :map
+      { path: 'maps/:map/nades', element: <MapNades /> },
+      { path: 'maps/:map/spawns', element: <MapSpawns /> },
+      { path: 'maps/:map/default', element: <Placeholder /> },
+      { path: 'maps/:map/positions', element: <Placeholder /> },
+      { path: 'maps/:map/rounds', element: <Placeholder /> },
+      { path: 'maps/:map/tips', element: <Placeholder /> },
+      { path: 'maps/:map/smokes', element: <LegacyNadesRedirect /> },
 
       // Тренировка
+      { path: 'training/nades', element: <TrainingNades /> },
       { path: 'training/setup', element: <TrainingConfigs /> },
       { path: 'training/aim', element: <Placeholder /> },
       { path: 'training/workshop', element: <Placeholder /> },
